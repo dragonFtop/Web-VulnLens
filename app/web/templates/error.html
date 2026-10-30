@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}错误 {{ status_code }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-body p-4 p-lg-5 text-center">
+        <div class="page-kicker">system_fault</div>
+        <div class="display-4 fw-bold text-secondary mb-2">{{ status_code }}</div>
+        <h1 class="h4 mb-2">请求未能完成</h1>
+        <p class="text-secondary mb-1">{{ message }}</p>
+        <p class="font-monospace small text-muted mb-4">错误码：{{ code }}{% if job_id %} · 任务：{{ job_id }}{% endif %}</p>
+        <div class="d-flex justify-content-center gap-2">
+          <a class="btn btn-primary" href="/">返回工作台</a>
+          <a class="btn btn-outline-secondary" href="/history">查看历史</a>
+        </div>
+        <p class="small text-muted mt-4 mb-0">若问题持续存在，请查看服务端日志定位原因；页面不会展示内部堆栈。</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}工作台{% endblock %} · {{ app_name }}</title>
+  <link rel="stylesheet" href="/static/vendor/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/vendor/github-dark.min.css">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body data-page="{{ page|default('') }}">
+  <div class="bg-fx" aria-hidden="true">
+    <div class="bg-glow"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-radar"></div>
+    <div class="bg-ping"></div>
+    <div class="bg-scan"></div>
+  </div>
+  <nav class="navbar navbar-expand-lg navbar-dark app-navbar">
+    <div class="container">
+      <a class="navbar-brand fw-semibold" href="/">
+        <span class="brand-mark">WV</span> {{ app_name }}
+      </a>
+      <div class="d-flex align-items-center gap-2 ms-auto">
+        <span class="nav-status d-none d-md-inline-flex align-items-center" aria-hidden="true">
+          <span class="status-dot"></span>SECURE_LINK
+        </span>
+        <a class="nav-link app-nav-link {{ 'active' if page == 'index' else '' }}" href="/">工作台</a>
+        <a class="nav-link app-nav-link {{ 'active' if page == 'history' else '' }}" href="/history">历史记录</a>
+        <a class="nav-link app-nav-link" href="/docs" target="_blank" rel="noopener">API 文档</a>
+        <span class="badge rounded-pill text-bg-warning ms-2">本地工具</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container my-4 app-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <p class="mb-1">{{ app_disclaimer }}</p>
+      <p class="mb-0 text-muted">请勿将本工具用于未授权目标；HTTP 分析仅检查请求负载，不向目标站点发送任何请求。</p>
+    </div>
+  </footer>
+
+  <script src="/static/vendor/bootstrap.bundle.min.js"></script>
+  <script src="/static/vendor/highlight.min.js"></script>
+  <script src="/static/vendor/hljs-python.min.js"></script>
+  <script src="/static/vendor/hljs-php.min.js"></script>
+  <script src="/static/vendor/hljs-javascript.min.js"></script>
+  <script src="/static/vendor/hljs-http.min.js"></script>
+  <script src="/static/vendor/hljs-plaintext.min.js"></script>
+  <script src="/static/vendor/hljs-diff.min.js"></script>
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

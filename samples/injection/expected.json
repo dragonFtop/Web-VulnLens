@@ -1,0 +1,78 @@
+[
+  {
+    "file": "inj_comment.py",
+    "input_type": "code",
+    "language": "python",
+    "suspicious": true,
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "SQL_INJECTION", "line_start": 14, "line_end": 14 }
+    ]
+  },
+  {
+    "file": "inj_docstring.py",
+    "input_type": "code",
+    "language": "python",
+    "suspicious": true,
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "line_start": 11, "line_end": 11 }
+    ]
+  },
+  {
+    "file": "inj_php.php",
+    "input_type": "code",
+    "language": "php",
+    "suspicious": true,
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "line_start": 4, "line_end": 4 }
+    ]
+  },
+  {
+    "file": "inj_js.js",
+    "input_type": "code",
+    "language": "javascript",
+    "suspicious": true,
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "line_start": 9, "line_end": 9 }
+    ]
+  },
+  {
+    "file": "inj_param.txt",
+    "input_type": "http",
+    "language": "http",
+    "suspicious": true,
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "SQL_INJECTION", "location": "body.username" }
+    ]
+  },
+  {
+    "file": "inj_param_b64.txt",
+    "input_type": "http",
+    "language": "http",
+    "suspicious": true,
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "location": "query.html" }
+    ]
+  },
+  {
+    "file": "inj_fake_system.py",
+    "input_type": "code",
+    "language": "python",
+    "suspicious": true,
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "inj_fake_format.txt",
+    "input_type": "http",
+    "language": "http",
+    "suspicious": true,
+    "vulnerable": false,
+    "findings": []
+  }
+]

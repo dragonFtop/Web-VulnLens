@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>检测报告 · {{ job.id }}</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #e8e4e7;
+      --muted: #948e98;
+      --line: #2a262d;
+      --line-strong: #3d353d;
+      --bg: #050506;
+      --panel: #0b0b0e;
+      --panel-2: #101014;
+      --high: #ff2d4b;
+      --medium: #f5b642;
+      --low: #9aa4b5;
+      --accent: #ff2d4b;
+      --accent-soft: #ff6b80;
+      --green: #47e0a0;
+      --mono: "Cascadia Mono", "Cascadia Code", "JetBrains Mono", Consolas, "Courier New", monospace;
+      --sans: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      --display: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 20px 60px;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 10% -8%, rgba(255, 45, 75, 0.11), transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: auto, 48px 48px, 48px 48px;
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.7;
+      letter-spacing: 0;
+      text-rendering: optimizeLegibility;
+    }
+    .report {
+      position: relative;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 40px 40px;
+      border: 1px solid rgba(255, 45, 75, 0.25);
+      border-radius: 3px;
+      background: var(--panel);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 30px 80px rgba(0, 0, 0, 0.6);
+    }
+    .report::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), rgba(255, 45, 75, 0.15) 55%, transparent);
+      box-shadow: 0 0 16px rgba(255, 45, 75, 0.5);
+    }
+    .report-topbar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0 -40px 28px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    .report-topbar .dot { width: 8px; height: 8px; border-radius: 50%; background: #3a3a42; }
+    .report-topbar .dot:nth-child(1) { background: #ff5f57; }
+    .report-topbar .dot:nth-child(2) { background: #febc2e; }
+    .report-topbar .dot:nth-child(3) { background: #28c840; }
+    .report-topbar .path { margin-left: 10px; color: #a29ca6; }
+    .report-topbar .tag { margin-left: auto; color: var(--accent-soft); font-size: 10px; letter-spacing: 0.16em; }
+    header { border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 24px; }
+    .report-kicker {
+      margin-bottom: 6px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.24em;
+    }
+    h1 { margin: 0 0 6px; font-family: var(--display); font-size: 27px; font-weight: 700; letter-spacing: 0; text-shadow: 0 0 26px rgba(255, 45, 75, 0.14); }
+    h2 { margin: 32px 0 12px; padding-left: 12px; border-left: 2px solid var(--accent); font-family: var(--sans); font-size: 17px; font-weight: 600; letter-spacing: 0.01em; }
+    h3 { margin: 0 0 10px; font-family: var(--sans); font-size: 16px; font-weight: 600; }
+    .subtitle { color: var(--muted); font-size: 12.5px; font-family: var(--sans); }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+    .tile {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      padding: 13px 15px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--panel-2);
+      color: var(--ink);
+    }
+    .tile::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 62%;
+      height: 1px;
+      background: linear-gradient(90deg, currentColor, transparent);
+      opacity: 0.55;
+    }
+    .tile .num { font-family: var(--mono); font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+    .tile .label { color: var(--muted); font-family: var(--sans); font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .tile.high { color: var(--high); }
+    .tile.medium { color: var(--medium); }
+    .tile.low { color: var(--low); }
+    .tile.high .num { text-shadow: 0 0 20px rgba(255, 45, 75, 0.35); }
+    .tile.medium .num { text-shadow: 0 0 20px rgba(245, 182, 66, 0.25); }
+    dl.meta { display: grid; grid-template-columns: 150px 1fr 150px 1fr; gap: 6px 16px; margin: 16px 0 0; font-size: 12.5px; }
+    dl.meta dt { color: var(--muted); font-family: var(--sans); font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; }
+    dl.meta dd { margin: 0; word-break: break-all; }
+    .finding {
+      border: 1px solid var(--line);
+      border-left-width: 3px;
+      border-radius: 2px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      background: var(--panel-2);
+    }
+    .finding.both { border-left-color: var(--high); box-shadow: inset 24px 0 40px -40px rgba(255, 45, 75, 0.8); }
+    .finding.llm { border-left-color: #f0883e; }
+    .finding.rule { border-left-color: #d4a017; background: linear-gradient(180deg, rgba(212, 160, 23, 0.05), transparent 55%), var(--panel-2); }
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .badge {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      padding: 1px 9px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-family: var(--sans);
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .badge.high { color: #fff; background: linear-gradient(180deg, #e01f3d, #9c1024); border-color: #ff4b63; }
+    .badge.medium { color: #171103; background: var(--medium); border-color: #ffd27a; }
+    .badge.low { color: #e5e9f0; background: #30343d; border-color: #4a5363; }
+    .badge.dark { color: #ff9aa8; background: rgba(255, 45, 75, 0.1); border-color: rgba(255, 45, 75, 0.4); }
+    .evidence {
+      border: 1px solid #232329;
+      border-left: 2px solid rgba(255, 45, 75, 0.6);
+      border-radius: 2px;
+      padding: 10px 12px;
+      overflow-x: auto;
+      background: #070709;
+      color: #d6d3d9;
+      font-family: var(--mono);
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .field { margin: 8px 0; font-size: 14px; }
+    .field strong { color: var(--accent-soft); font-family: var(--sans); font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+    .knowledge {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px dashed var(--line);
+      border-left: 2px solid rgba(255, 45, 75, 0.4);
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.015);
+      font-size: 13px;
+    }
+    .knowledge .id { font-family: var(--mono); color: var(--accent-soft); }
+    .alert {
+      border: 1px solid rgba(245, 182, 66, 0.28);
+      border-left: 3px solid var(--medium);
+      border-radius: 2px;
+      padding: 12px 16px;
+      background: rgba(245, 182, 66, 0.055);
+      color: #f1dfbd;
+      font-size: 13px;
+    }
+    .alert code { padding: 0 4px; border: 1px solid rgba(245, 182, 66, 0.3); border-radius: 2px; background: #0b0b0e; color: #ffd27a; font-family: var(--mono); }
+    .muted { color: var(--muted); }
+    .small { font-size: 12px; }
+    table.config { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.config th, table.config td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; }
+    table.config th { background: rgba(255, 255, 255, 0.03); color: var(--muted); font-family: var(--sans); font-weight: 600; width: 34%; }
+    footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    footer p { margin: 0.4rem 0; }
+    @media (max-width: 760px) {
+      body { padding: 16px 10px 40px; }
+      .report { padding: 0 18px 24px; }
+      .report-topbar { margin: 0 -18px 22px; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      dl.meta { grid-template-columns: 110px 1fr; }
+    }
+    @media print {
+      :root {
+        color-scheme: light;
+        --ink: #14141a;
+        --muted: #59606d;
+        --line: #d8d8de;
+        --bg: #fff;
+        --panel: #fff;
+        --panel-2: #fff;
+        --accent: #b3132e;
+        --accent-soft: #9c1024;
+        --high: #b3132e;
+        --medium: #8a5a00;
+        --low: #4b5565;
+      }
+      body { padding: 0; color: var(--ink); background: #fff; font-family: var(--sans); }
+      .report { max-width: none; padding: 0; border: 0; background: #fff; box-shadow: none; }
+      .report::before, .report-topbar { display: none; }
+      header { border-bottom: 2px solid var(--accent); }
+      h1, h2, h3 { color: var(--ink); text-shadow: none; }
+      h2 { border-left-color: var(--accent); }
+      .report-kicker, .subtitle, dl.meta dt { color: #444; }
+      .tile { background: #fff; border: 1px solid var(--line); }
+      .finding { background: #fff; box-shadow: none; border: 1px solid var(--line); border-left-width: 3px; }
+      .badge { color: #14141a !important; background: #fff !important; border: 1px solid #adb3bd !important; }
+      .badge.high { color: #fff !important; background: #b3132e !important; border-color: #b3132e !important; }
+      .badge.medium { color: #fff !important; background: #8a5a00 !important; border-color: #8a5a00 !important; }
+      .badge.low { color: #fff !important; background: #4b5565 !important; border-color: #4b5565 !important; }
+      .evidence { background: #f6f7f9; color: #1f2328; border: 1px solid #d8d8de; border-left: 3px solid #b3132e; }
+      .knowledge { background: #fafafa; }
+      .alert { background: #fff8e6; color: #14141a; border-color: #e4c47a; }
+      .alert code { background: #fff; color: #7a4d00; }
+      table.config th { background: #f7f8fa; }
+      footer { color: #444; }
+    }
+  </style>
+</head>
+<body>
+<div class="report">
+  <div class="report-topbar" aria-hidden="true">
+    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="path">~/reports/{{ job.id }}.html</span>
+    <span class="tag">READ_ONLY</span>
+  </div>
+  <header>
+    <div class="report-kicker">SECURITY_AUDIT_REPORT</div>
+    <h1>Web 代码漏洞检测报告</h1>
+    <div class="subtitle">任务 {{ job.id }} · 生成时间 {{ generated_at.replace('T', ' ').replace('Z', ' UTC') }}</div>
+  </header>
+
+  <dl class="meta">
+    <dt>输入类型</dt><dd>{{ '代码文件' if job.input_type == 'code' else 'HTTP 请求' }}</dd>
+    <dt>文件名</dt><dd>{{ job.filename or '—' }}</dd>
+    <dt>语言</dt><dd>{{ job.language or '—' }}</dd>
+    <dt>状态</dt><dd>{{ job.status_display }}</dd>
+    <dt>模型</dt><dd>{{ job.model }}</dd>
+    <dt>创建时间</dt><dd>{{ job.created_at.replace('T', ' ').replace('Z', ' UTC') }}</dd>
+    <dt>Token（prompt / completion）</dt><dd>{{ job.prompt_tokens }} / {{ job.completion_tokens }}</dd>
+    <dt>耗时</dt><dd>{{ job.duration_ms if job.duration_ms is not none else '—' }} ms</dd>
+    <dt>缓存回放</dt><dd>{{ '是' if job.cached else '否' }}</dd>
+    <dt>模型输出校验</dt><dd>{{ '存在异常' if job.llm_output_invalid else '正常' }}</dd>
+  </dl>
+
+  <div class="grid">
+    <div class="tile high"><div class="num">{{ summary.HIGH }}</div><div class="label">高危</div></div>
+    <div class="tile medium"><div class="num">{{ summary.MEDIUM }}</div><div class="label">中危</div></div>
+    <div class="tile low"><div class="num">{{ summary.LOW }}</div><div class="label">低危</div></div>
+    <div class="tile"><div class="num">{{ summary.rule_only }}</div><div class="label">待复核线索</div></div>
+  </div>
+
+  {% if job.error %}
+  <div class="alert"><strong>任务错误：</strong>{{ job.error }}</div>
+  {% endif %}
+
+  {% if job.input_type == 'http' %}
+  <div class="alert">
+    本报告分析的是请求负载中的可疑特征，系统未向目标 Host 发送任何请求。
+    报告结论不代表目标站点已被确认存在漏洞。
+  </div>
+  {% endif %}
+
+  {% if suspicious_content %}
+  <h2>疑似提示注入内容</h2>
+  <div class="alert">
+    <div>以下文本被识别为疑似操纵审计模型的指令，已作为数据隔离处理：</div>
+    <ul>
+      {% for item in suspicious_content %}
+      <li>
+        {% if item.line %}第 {{ item.line }} 行：{% endif %}
+        <code>{{ item.quote }}</code>
+        <span class="muted">— {{ item.reason }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <h2>漏洞与线索明细</h2>
+  {% if findings %}
+    {% for finding in findings %}
+    <article class="finding {{ finding.source_channel }}">
+      <h3>#{{ loop.index }} {{ finding.vuln_type_display }} · {{ finding.location }}</h3>
+      <div class="badges">
+        <span class="badge {{ finding.severity|lower }}">{{ finding.severity_display }}</span>
+        <span class="badge">{{ finding.source_display }}</span>
+        <span class="badge">置信度 {{ finding.confidence|confidence }}</span>
+        {% if finding.cwe_id %}<span class="badge">{{ finding.cwe_id }}</span>{% endif %}
+        {% if finding.rule_id %}<span class="badge">规则 {{ finding.rule_id }}</span>{% endif %}
+      </div>
+      <div class="evidence">{{ finding.evidence }}</div>
+      <div class="field"><strong>说明：</strong>{{ finding.description }}</div>
+      <div class="field"><strong>修复建议：</strong>{{ finding.suggestion }}</div>
+      <div class="field small muted">
+        判定因素：输入可控={{ '是' if finding.factors.input_controllable is true else ('否' if finding.factors.input_controllable is false else '未知') }}；
+        需认证={{ '是' if finding.factors.auth_required is true else ('否' if finding.factors.auth_required is false else '未知') }}；
+        已清洗={{ '是' if finding.factors.sanitized is true else ('否' if finding.factors.sanitized is false else '未知') }}
+        {% if finding.factors.reason %}；{{ finding.factors.reason }}{% endif %}
+      </div>
+      {% if finding.knowledge %}
+      <div class="knowledge">
+        <div class="small muted" style="margin-bottom:4px;">知识依据</div>
+        {% for entry in finding.knowledge %}
+        <div>
+          <span class="id">{{ entry.id }}</span> · {{ entry.title }}
+          <span class="muted small">{{ entry.cwe }}</span>
+          <div class="small">{{ entry.content }}</div>
+          {% if entry.refs %}<div class="small muted">参考：{{ entry.refs|join('；') }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  {% else %}
+    <p class="muted">未发现漏洞或线索。</p>
+  {% endif %}
+
+  <h2>运行配置快照</h2>
+  <table class="config">
+    <tbody>
+      <tr><th>模型</th><td>{{ config_snapshot.model }}</td></tr>
+      <tr><th>温度 / JSON 模式</th><td>{{ config_snapshot.temperature }} / {{ '开启' if config_snapshot.json_mode else '关闭' }}</td></tr>
+      <tr><th>提示词版本</th><td>{{ config_snapshot.prompt_version }}</td></tr>
+      <tr><th>候选点上限 / 知识 Top-K</th><td>{{ config_snapshot.max_candidates }} / {{ config_snapshot.kb_top_k }}</td></tr>
+      <tr><th>提示注入防御</th><td>{{ '开启（含可疑内容独立复核）' if config_snapshot.guard_recheck else '基础检测' }}</td></tr>
+      <tr><th>演示缓存</th><td>{{ '开启' if config_snapshot.demo_cache else '关闭' }}；本次{{ '命中缓存' if config_snapshot.result_cached else '未命中缓存' }}</td></tr>
+      <tr><th>结果一致性</th><td>{{ '模型输出存在校验异常，已降级或部分丢弃' if config_snapshot.llm_output_invalid else '正常' }}</td></tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <p>{{ disclaimer }}</p>
+    <p>检测范围：SQL 注入、XSS、命令执行；不覆盖跨文件污点、依赖漏洞、运行时配置与业务逻辑漏洞。</p>
+  </footer>
+</div>
+</body>
+</html>

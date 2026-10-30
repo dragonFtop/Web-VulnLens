@@ -1,0 +1,4 @@
+GET /search?q=select+the+best+book+for+beginners&sort=title&page=2 HTTP/1.1
+Host: library.example.test
+User-Agent: sample-client/1.0
+Accept: text/html

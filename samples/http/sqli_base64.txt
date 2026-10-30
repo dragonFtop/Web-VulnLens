@@ -1,0 +1,4 @@
+GET /api/items?filter=JyBPUiAnMSc9JzE%3D HTTP/1.1
+Host: shop.example.test
+User-Agent: sample-client/1.0
+Accept: application/json

@@ -1,0 +1,4 @@
+GET /tools/lookup?domain=OyB3aG9hbWk%3D HTTP/1.1
+Host: ops.example.test
+User-Agent: sample-client/1.0
+Accept: application/json

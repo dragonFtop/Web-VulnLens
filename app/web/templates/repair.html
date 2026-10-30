@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}修复 {{ repair.repair_id }}{% endblock %}
+
+{% macro tri(value, true_text, false_text, none_text) -%}
+  {% if value is true %}<span class="badge text-bg-success">{{ true_text }}</span>
+  {% elif value is false %}<span class="badge text-bg-danger">{{ false_text }}</span>
+  {% else %}<span class="badge text-bg-secondary">{{ none_text }}</span>{% endif %}
+{%- endmacro %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+  <div>
+    <div class="small text-muted mb-1">
+      <a href="/" class="text-decoration-none">工作台</a> /
+      {% if job %}<a href="/scans/{{ job.id }}" class="text-decoration-none">扫描详情</a> / {% endif %}
+      修复详情
+    </div>
+    <div class="page-kicker">patch_record</div>
+    <h1 class="h4 mb-1">修复结果 <span class="font-monospace text-secondary">{{ repair.repair_id }}</span></h1>
+    <div class="small text-muted">
+      {% if job %}{{ job.filename }} · {% endif %}
+      {% if finding %}{{ finding.vuln_type_display }} · {{ finding.location }}{% endif %}
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <a class="btn btn-primary btn-sm" href="{{ repair.download_url }}">下载修复文件</a>
+    {% if job %}<a class="btn btn-outline-secondary btn-sm" href="/scans/{{ job.id }}">返回扫描详情</a>{% endif %}
+  </div>
+</div>
+
+{% if repair.verified is true %}
+<div class="alert alert-success">
+  <span class="fw-semibold">综合验证通过。</span>
+  仍需人工审查语义与业务影响后，再合并到项目中。
+</div>
+{% elif repair.verified is false %}
+<div class="alert alert-danger">
+  <span class="fw-semibold">综合验证未通过。</span>
+  补丁可用于参考，但请勿直接使用；请结合残余风险与验证结果人工修改。
+</div>
+{% else %}
+<div class="alert alert-secondary">
+  <span class="fw-semibold">综合验证状态未知。</span>
+  请人工确认语法、复扫与复核结果后再决定是否使用。
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="verify-card">
+      <div class="verify-label">语法检查</div>
+      <div class="verify-value">{{ tri(repair.syntax_ok, '通过', '未通过', '跳过') }}</div>
+      <div class="verify-desc">Python 使用 <code>ast.parse</code>；PHP / JS 不执行语法检查。</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="verify-card">
+      <div class="verify-label">复扫</div>
+      <div class="verify-value">{{ tri(repair.rescan_clean, '未再发现目标候选', '仍发现目标候选', '未执行') }}</div>
+      <div class="verify-desc">对修复代码重跑规则，检查同类型候选是否消失。</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="verify-card">
+      <div class="verify-label">LLM 复核</div>
+      <div class="verify-value">{{ tri(repair.llm_verified, '通过', '未通过', '未执行或失败') }}</div>
+      <div class="verify-desc">可选的独立复核；未启用或调用失败时为未知。</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="verify-card">
+      <div class="verify-label">综合验证</div>
+      <div class="verify-value">{{ tri(repair.verified, '通过', '未通过', '未知') }}</div>
+      <div class="verify-desc">Python：语法通过且复扫干净；其他语言：复扫干净且 LLM 复核不为 false。</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">修复说明与残余风险</div>
+      <div class="card-body">
+        <div class="notes-box">{{ repair.notes }}</div>
+        <div class="alert alert-light border small mt-3 mb-0">
+          修复结果由模型生成，仅供参考。系统不会执行补丁，也不会覆盖原始文件；
+          上线前必须由人工复核，并在测试环境验证行为。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">关联信息</div>
+      <div class="card-body">
+        <dl class="config-list mb-0">
+          <dt>修复记录</dt>
+          <dd class="font-monospace">{{ repair.repair_id }}</dd>
+          <dt>漏洞记录</dt>
+          <dd class="font-monospace">{{ repair.finding_id }}</dd>
+          {% if finding %}
+          <dt>类型 / 等级</dt>
+          <dd>
+            <span class="badge text-bg-dark">{{ finding.vuln_type_display }}</span>
+            <span class="badge text-bg-{{ finding.severity_class }}">{{ finding.severity_display }}</span>
+          </dd>
+          <dt>来源</dt>
+          <dd><span class="channel-badge channel-{{ finding.source_channel }}">{{ finding.source_display }}</span></dd>
+          {% endif %}
+          <dt>生成时间</dt>
+          <dd><span data-utc="{{ repair.created_at }}">{{ repair.created_at }}</span></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ul class="nav nav-tabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-diff" type="button" role="tab">代码 Diff</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-patched" type="button" role="tab">修复后完整代码</button>
+  </li>
+</ul>
+<div class="tab-content bg-white border border-top-0 rounded-bottom p-3 shadow-sm">
+  <div class="tab-pane fade show active" id="tab-diff" role="tabpanel">
+    {% if diff_lines %}
+    <div class="small text-muted mb-2">绿色为新增，红色为删除，蓝色为位置提示。</div>
+    <pre class="diff-view">{% for line in diff_lines %}<span class="diff-line diff-{{ line.kind }}">{{ line.text }}</span>{% endfor %}</pre>
+    {% else %}
+    <div class="empty-state text-center text-muted py-4">没有可展示的 diff。</div>
+    {% endif %}
+  </div>
+  <div class="tab-pane fade" id="tab-patched" role="tabpanel">
+    {% if repair.patched_code %}
+    <pre class="code-plain"><code id="patched-code" class="language-{{ code_language }}">{{ repair.patched_code }}</code></pre>
+    {% else %}
+    <div class="empty-state text-center text-muted py-4">补丁文件不可用或已被清理。</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

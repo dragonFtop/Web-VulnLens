@@ -1,0 +1,72 @@
+[
+  {
+    "file": "vuln_01.py",
+    "language": "python",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "line_start": 11, "line_end": 11 }
+    ]
+  },
+  {
+    "file": "vuln_02.py",
+    "language": "python",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "line_start": 11, "line_end": 11 }
+    ]
+  },
+  {
+    "file": "vuln_03.py",
+    "language": "python",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "line_start": 9, "line_end": 9 }
+    ]
+  },
+  {
+    "file": "vuln_04.php",
+    "language": "php",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "line_start": 3, "line_end": 3 }
+    ]
+  },
+  {
+    "file": "vuln_05.js",
+    "language": "javascript",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "line_start": 7, "line_end": 7 }
+    ]
+  },
+  {
+    "file": "safe_01.py",
+    "language": "python",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_02.py",
+    "language": "python",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_03.php",
+    "language": "php",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_04.js",
+    "language": "javascript",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_05.py",
+    "language": "python",
+    "vulnerable": false,
+    "findings": []
+  }
+]

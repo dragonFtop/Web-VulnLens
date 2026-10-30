@@ -1,0 +1,80 @@
+[
+  {
+    "file": "sqli_double_url.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "SQL_INJECTION", "location": "query.id" }
+    ]
+  },
+  {
+    "file": "sqli_base64.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "SQL_INJECTION", "location": "query.filter" }
+    ]
+  },
+  {
+    "file": "sqli_comment_bypass.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "SQL_INJECTION", "location": "query.id" }
+    ]
+  },
+  {
+    "file": "xss_html_entity.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "location": "query.q" }
+    ]
+  },
+  {
+    "file": "xss_url_script.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "location": "query.next" }
+    ]
+  },
+  {
+    "file": "xss_base64.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "location": "query.html" }
+    ]
+  },
+  {
+    "file": "rce_url_semicolon.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "location": "query.host" }
+    ]
+  },
+  {
+    "file": "rce_base64.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "location": "query.domain" }
+    ]
+  },
+  {
+    "file": "rce_backtick.txt",
+    "language": "http",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "COMMAND_INJECTION", "location": "query.target" }
+    ]
+  },
+  {
+    "file": "benign_search.txt",
+    "language": "http",
+    "vulnerable": false,
+    "findings": []
+  }
+]

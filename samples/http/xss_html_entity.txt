@@ -1,0 +1,4 @@
+GET /search?q=%26lt%3Bscript%26gt%3Balert(document.domain)%26lt%3B%2Fscript%26gt%3B HTTP/1.1
+Host: blog.example.test
+User-Agent: sample-client/1.0
+Accept: text/html

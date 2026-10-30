@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}历史记录{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+  <div>
+    <div class="small text-muted mb-1"><a href="/" class="text-decoration-none">工作台</a> / 历史记录</div>
+    <div class="page-kicker">history_log</div>
+    <h1 class="h4 mb-0">历史扫描</h1>
+  </div>
+  <form class="history-filter d-flex align-items-center gap-2" method="get" action="/history">
+    <label for="status-filter" class="small text-muted text-nowrap">状态筛选</label>
+    <select class="form-select form-select-sm" id="status-filter" name="status">
+      <option value="" {{ 'selected' if not status_filter else '' }}>全部状态</option>
+      {% for value, label in status_options %}
+      <option value="{{ value }}" {{ 'selected' if status_filter == value else '' }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-sm btn-outline-primary" type="submit">筛选</button>
+  </form>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    {% if jobs %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0 history-table">
+        <thead>
+          <tr>
+            <th>任务 ID</th>
+            <th>输入</th>
+            <th>状态</th>
+            <th>结果统计</th>
+            <th>Token</th>
+            <th>耗时</th>
+            <th>创建时间</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td><a class="font-monospace text-decoration-none" href="/scans/{{ job.id }}">{{ job.id }}</a></td>
+            <td class="small">
+              <span class="badge text-bg-light border">{{ '代码' if job.input_type == 'code' else 'HTTP' }}</span>
+              <span class="font-monospace">{{ job.filename or '—' }}</span>
+            </td>
+            <td>
+              <span class="badge text-bg-{{ job.status_class }}">{{ job.status_display }}</span>
+              {% if job.stage_display and job.status == 'RUNNING' %}
+              <div class="small text-muted">{{ job.stage_display }}</div>
+              {% endif %}
+            </td>
+            <td class="small">
+              {% if job.status == 'DONE' %}
+              <span class="badge text-bg-danger">危 {{ job.summary.HIGH }}</span>
+              <span class="badge text-bg-warning">中 {{ job.summary.MEDIUM }}</span>
+              <span class="badge text-bg-secondary">低 {{ job.summary.LOW }}</span>
+              <span class="badge text-bg-light border">线索 {{ job.summary.rule_only }}</span>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="small">{{ job.prompt_tokens + job.completion_tokens }}</td>
+            <td class="small">{{ job.duration_ms|duration }}</td>
+            <td class="small text-muted"><span data-utc="{{ job.created_at }}">{{ job.created_at }}</span></td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-secondary" href="/scans/{{ job.id }}">查看</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state text-center text-muted py-5">
+      <div class="fs-5 mb-1">没有符合条件的记录</div>
+      <div class="small">调整筛选条件，或回到工作台发起一次扫描。</div>
+    </div>
+    {% endif %}
+  </div>
+  {% if total %}
+  <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="small text-muted">共 {{ total }} 条 · 第 {{ page_number }} / {{ pages }} 页</span>
+    <nav aria-label="历史分页">
+      <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {{ 'disabled' if page_number <= 1 else '' }}">
+          <a class="page-link" href="/history?page={{ page_number - 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}">上一页</a>
+        </li>
+        <li class="page-item {{ 'disabled' if page_number >= pages else '' }}">
+          <a class="page-link" href="/history?page={{ page_number + 1 }}{% if status_filter %}&status={{ status_filter }}{% endif %}">下一页</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}工作台{% endblock %}
+
+{% block content %}
+<section class="hero-panel mb-4">
+  <div class="hero-termbar" aria-hidden="true">
+    <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+    <span class="hero-termtitle">root@web-vulnlens:~/audit :: hybrid_scan</span>
+    <span class="hero-termmeta">SECURE_CONSOLE // <span class="term-caret">_</span></span>
+  </div>
+  <div class="hero-inner">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-8">
+      <p class="text-uppercase small fw-semibold text-primary mb-2">Hybrid SAST + LLM</p>
+      <h1 class="display-6 fw-bold mb-2">Web 代码漏洞智能检测与修复</h1>
+      <p class="text-secondary mb-0">
+        上传 Python / PHP / JavaScript 代码，或粘贴一条原始 HTTP 请求。工具会先用规则与轻量污点分析定位候选点，
+        再让大模型在候选窗口内判断，并给出证据、风险等级与修复建议。
+      </p>
+    </div>
+    <div class="col-lg-4">
+      <div class="hero-note">
+        <div class="fw-semibold mb-1">检测范围</div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge text-bg-light border">SQL 注入</span>
+          <span class="badge text-bg-light border">XSS</span>
+          <span class="badge text-bg-light border">命令执行</span>
+        </div>
+        <div class="small text-muted mt-2">不含跨文件污点分析、依赖漏洞与运行时配置问题。</div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm input-card">
+      <div class="card-header bg-white border-0 pt-3">
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-code-btn" data-bs-toggle="tab" data-bs-target="#tab-code" type="button" role="tab">
+              代码文件
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-http-btn" data-bs-toggle="tab" data-bs-target="#tab-http" type="button" role="tab">
+              原始 HTTP 请求
+            </button>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="tab-code" role="tabpanel">
+            <form id="code-form" novalidate>
+              <label for="code-file" class="form-label fw-semibold">选择代码文件</label>
+              <input class="form-control form-control-lg" type="file" id="code-file" name="file" accept=".py,.php,.js">
+              <div class="form-text">
+                支持 .py / .php / .js，单文件不超过 {{ meta.max_upload_mb }}MB；Python 使用 AST 污点分析，PHP/JS 使用规则候选。
+              </div>
+              <div class="d-flex align-items-center gap-2 mt-3">
+                <button class="btn btn-primary" type="submit" id="code-submit">上传并扫描</button>
+                <span class="small text-muted">扫描在后台执行，页面会自动轮询进度。</span>
+              </div>
+            </form>
+          </div>
+          <div class="tab-pane fade" id="tab-http" role="tabpanel">
+            <form id="http-form" novalidate>
+              <label for="http-input" class="form-label fw-semibold">粘贴原始 HTTP 请求</label>
+              <textarea class="form-control font-monospace" id="http-input" rows="10" spellcheck="false"
+                placeholder="POST /login HTTP/1.1&#10;Host: example.com&#10;Content-Type: application/x-www-form-urlencoded&#10;&#10;username=admin'--&password=x"></textarea>
+              <div class="form-text">
+                仅分析请求中的参数与编码链（URL / HTML 实体 / Unicode / Base64），不会向 Host 发送请求。Body 上限 {{ meta.max_http_body_kb }}KB。
+              </div>
+              <div class="d-flex align-items-center gap-2 mt-3">
+                <button class="btn btn-primary" type="submit" id="http-submit">分析请求</button>
+                <span class="small text-muted">结论描述的是请求负载，不代表目标站点已确认存在漏洞。</span>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div id="scan-panel" class="scan-panel d-none mt-3" aria-live="polite">
+          <div class="d-flex align-items-center gap-2">
+            <span id="scan-spinner" class="spinner-border spinner-border-sm text-primary" role="status" hidden></span>
+            <span id="scan-status-text" class="fw-semibold">准备中…</span>
+          </div>
+          <div class="progress mt-2" id="scan-progress-wrap" hidden>
+            <div id="scan-progress" class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+          </div>
+          <div id="scan-error" class="alert alert-danger mt-2 mb-0 d-none"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">最近扫描</span>
+        <a class="small text-decoration-none" href="/history">查看全部 {{ recent_total }} 条</a>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_jobs %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 recent-table">
+            <thead>
+              <tr>
+                <th>任务</th>
+                <th>类型 / 文件</th>
+                <th>状态</th>
+                <th>结果</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for job in recent_jobs %}
+              <tr>
+                <td><a class="font-monospace text-decoration-none" href="/scans/{{ job.id }}">{{ job.id }}</a></td>
+                <td>
+                  <span class="badge text-bg-light border">{{ '代码' if job.input_type == 'code' else 'HTTP' }}</span>
+                  <span class="small">{{ job.filename or '—' }}</span>
+                </td>
+                <td><span class="badge text-bg-{{ job.status_class }}">{{ job.status_display }}</span></td>
+                <td class="small">
+                  {% if job.status == 'DONE' %}
+                  高危 {{ job.summary.HIGH }} · 中危 {{ job.summary.MEDIUM }} · 低危 {{ job.summary.LOW }} · 线索 {{ job.summary.rule_only }}
+                  {% else %}
+                  <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted"><span data-utc="{{ job.created_at }}">{{ job.created_at }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state p-4 text-center text-muted">
+          还没有扫描记录，从上方上传一个代码文件开始。
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">运行配置</div>
+      <div class="card-body">
+        <dl class="config-list mb-0">
+          <dt>模型</dt>
+          <dd class="font-monospace">{{ meta.model }}</dd>
+          <dt>API Key</dt>
+          <dd>
+            {% if meta.has_key %}
+            <span class="badge text-bg-success">已配置</span>
+            {% else %}
+            <span class="badge text-bg-warning">未配置</span>
+            {% endif %}
+          </dd>
+          <dt>演示缓存</dt>
+          <dd>{{ '开启（命中时回放历史模型输出）' if meta.demo_cache else '关闭' }}</dd>
+          <dt>提示注入防御</dt>
+          <dd>{{ '开启' if meta.guard_recheck else '基础检测' }}</dd>
+          <dt>自动修复</dt>
+          <dd>{{ '开启' if meta.repair_enabled else '关闭' }}</dd>
+          <dt>候选点上限</dt>
+          <dd>{{ meta.max_candidates }} 个 / 任务</dd>
+          <dt>知识条目</dt>
+          <dd>每种漏洞 Top {{ meta.kb_top_k }}</dd>
+          <dt>上传限制</dt>
+          <dd>{{ meta.max_upload_mb }}MB 代码 · {{ meta.max_http_body_kb }}KB body</dd>
+        </dl>
+        {% if not meta.has_key %}
+        <div class="alert alert-warning small mt-3 mb-0">
+          未检测到 <code>LLM_API_KEY</code>。真实扫描需要先在 <code>.env</code> 中配置密钥；
+          若命中本地演示缓存则可离线回放。
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+      <div class="card-header bg-white fw-semibold">检测流程</div>
+      <div class="card-body">
+        <ol class="flow-list small mb-0">
+          <li><span>特征提取</span>规则 / AST 污点分析定位候选窗口</li>
+          <li><span>知识检索</span>BM25 注入相关修复知识</li>
+          <li><span>模型判定</span>结构化 JSON，证据逐行回验</li>
+          <li><span>双通道合并</span>规则与模型互相印证，线索单独展示</li>
+          <li><span>修复闭环</span>语法检查 → 复扫 → 可选 LLM 复核</li>
+        </ol>
+        <div class="alert alert-light border small mt-3 mb-0">
+          检测结果与修复补丁均为辅助结论，必须由人工复核；系统不会执行被检测代码。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

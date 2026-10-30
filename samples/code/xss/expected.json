@@ -1,0 +1,72 @@
+[
+  {
+    "file": "vuln_01.py",
+    "language": "python",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "line_start": 9, "line_end": 9 }
+    ]
+  },
+  {
+    "file": "vuln_02.py",
+    "language": "python",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "line_start": 10, "line_end": 10 }
+    ]
+  },
+  {
+    "file": "vuln_03.php",
+    "language": "php",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "line_start": 3, "line_end": 3 }
+    ]
+  },
+  {
+    "file": "vuln_04.js",
+    "language": "javascript",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "line_start": 6, "line_end": 6 }
+    ]
+  },
+  {
+    "file": "vuln_05.js",
+    "language": "javascript",
+    "vulnerable": true,
+    "findings": [
+      { "vuln_type": "XSS", "line_start": 6, "line_end": 6 }
+    ]
+  },
+  {
+    "file": "safe_01.py",
+    "language": "python",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_02.py",
+    "language": "python",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_03.php",
+    "language": "php",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_04.js",
+    "language": "javascript",
+    "vulnerable": false,
+    "findings": []
+  },
+  {
+    "file": "safe_05.js",
+    "language": "javascript",
+    "vulnerable": false,
+    "findings": []
+  }
+]
